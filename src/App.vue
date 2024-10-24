@@ -19,7 +19,8 @@ document.body.appendChild(app.canvas);
 // 获取显示的宽度，高度
 console.log(app.screen.width, app.screen.height)
 
-const initBg = (rectWidth) => {
+const initBg = (rectWidth, isMove = false) => {
+  
   // 计算当前宽度需要多少个方块
   const rectCount = Math.ceil(app.screen.width / rectWidth)
   // 计算当前高度需要多少个方块
@@ -29,8 +30,9 @@ const initBg = (rectWidth) => {
     isRenderGroup: true
   })
 
+  const totalCount = isMove ? rectCount * 2 : rectCount
   // 创建方块
-  for (let i = 0; i < rectCount; i++) {
+  for (let i = 0; i < totalCount; i++) {
     for (let j = 0; j < rectHeight; j++) {
       const rect = new Graphics();
       rect.rect(i * rectWidth, j * rectWidth, rectWidth, rectWidth);
@@ -45,6 +47,15 @@ const initBg = (rectWidth) => {
   }
 
   app.stage.addChild(rg);
+  if (isMove) {
+    app.ticker.add((delta) => {
+      const speed = 1
+      rg.x -= speed
+      if (rg.x < -rectWidth * rectCount) {
+        rg.x = 0
+      }
+    })
+  }
 }
 
 // 在页面中生成可点击圆形图案
