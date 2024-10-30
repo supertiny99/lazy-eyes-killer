@@ -2,7 +2,8 @@
 import {
   Application,
   Graphics,
-  Container
+  Container,
+  Circle
 } from 'pixi.js';
 
 try {
@@ -95,6 +96,8 @@ try {
       const container = new Container();
       container.addChild(circle);
       container.interactive = true;
+      // 可点击范围要比 circle 大一点
+      container.hitArea = new Circle(posX, posY, radius + 10);
       circleList.push(container);
 
       container.on('tap', () => {
@@ -122,9 +125,8 @@ try {
     setRandomBlink(circleList);
   }
 
-
   initBg(40, true);
-  initTapCircle(10, 10)
+  initTapCircle(15, 10)
 } catch (error) {
   console.log(error);
 }
@@ -132,7 +134,7 @@ try {
 // 当页面大小变化时，重新初始化背景
 window.addEventListener('resize', () => {
   initBg(40)
-  initTapCircle(10, 10)
+  initTapCircle(15, 10)
 })
 
 </script>
