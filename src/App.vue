@@ -126,7 +126,7 @@ try {
   console.log(app.screen.width, app.screen.height);
 
   initBg(40, true);
-  initTapCircle(15, 10)
+  initTapCircle(15, 50)
 } catch (error) {
   console.log(error);
 }
@@ -134,12 +134,12 @@ try {
 // 当页面大小变化时，重新初始化背景
 window.addEventListener('resize', () => {
   initBg(40)
-  initTapCircle(15, 10)
+  initTapCircle(15, 50)
 })
 // 页面翻转（平板浏览器上），重新初始化背景
 window.addEventListener('orientationchange', () => {
   initBg(40)
-  initTapCircle(15, 10)
+  initTapCircle(15, 50)
 })
 
 </script>
