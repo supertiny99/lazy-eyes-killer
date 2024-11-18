@@ -60,11 +60,11 @@ const isCirclesOverlap = (x1, y1, x2, y2, radius) => {
 const getNoOverlapPosition = (existingPositions, radius, padding) => {
   let attempts = 0;
   const maxAttempts = 100; // 最大尝试次数，防止无限循环
-  
+
   while (attempts < maxAttempts) {
     const posX = Math.random() * (app.screen.width - 2 * radius - padding * 2) + (padding + radius);
     const posY = Math.random() * (app.screen.height - 2 * radius - padding * 2) + (padding + radius);
-    
+
     // 检查是否与现有的圆重叠
     let hasOverlap = false;
     for (const pos of existingPositions) {
@@ -73,14 +73,14 @@ const getNoOverlapPosition = (existingPositions, radius, padding) => {
         break;
       }
     }
-    
+
     if (!hasOverlap) {
       return { x: posX, y: posY };
     }
-    
+
     attempts++;
   }
-  
+
   // 如果尝试多次都找不到合适的位置，可能需要调整参数
   console.warn('Could not find non-overlapping position after', maxAttempts, 'attempts');
   return null;
@@ -88,21 +88,21 @@ const getNoOverlapPosition = (existingPositions, radius, padding) => {
 
 // 随机设置其中一个圆形，背景色闪烁
 const setRandomBlink = (circleList) => {
-    const randomIndex = Math.floor(Math.random() * circleList.length);
-    const blinkCircle = circleList[randomIndex].children[0];
-    let blinkColor = 0xaaff00;
-    let blinkTime = 0;
-    const blinkFrequency = 500;
-    app.ticker.add((delta) => {
-      blinkTime += delta.elapsedMS;
-      // console.log(blinkTime, blinkFrequency);
-      if (blinkTime >= blinkFrequency) {
-        blinkTime = 0;
-        blinkColor = (blinkColor === 0xaaff00) ? 0xff00ff : 0xaaff00;
-        blinkCircle.tint = blinkColor;
-      }
-    })
-  }
+  const randomIndex = Math.floor(Math.random() * circleList.length);
+  const blinkCircle = circleList[randomIndex].children[0];
+  let blinkColor = 0xaaff00;
+  let blinkTime = 0;
+  const blinkFrequency = 500;
+  app.ticker.add((delta) => {
+    blinkTime += delta.elapsedMS;
+    // console.log(blinkTime, blinkFrequency);
+    if (blinkTime >= blinkFrequency) {
+      blinkTime = 0;
+      blinkColor = (blinkColor === 0xaaff00) ? 0xff00ff : 0xaaff00;
+      blinkCircle.tint = blinkColor;
+    }
+  })
+}
 
 // 在页面中生成可点击圆形图案
 const initTapCircle = (radius, count) => {
@@ -113,18 +113,18 @@ const initTapCircle = (radius, count) => {
 
   for (let i = 0; i < count; i++) {
     const circle = new Graphics();
-    
+
     // 获取不重叠的位置
     const position = getNoOverlapPosition(existingPositions, radius, padding);
-    
+
     // 如果找不到合适的位置，跳过这个圆
     if (!position) {
       console.warn('Skipping circle due to no available space');
       continue;
     }
-    
+
     existingPositions.push(position);
-    
+
     circle.circle(position.x, position.y, radius);
     circle.fill(0xaaff00);
 
@@ -139,7 +139,7 @@ const initTapCircle = (radius, count) => {
       if (container.children[0].tint === 0xaaff00) {
         // 创建点击动画效果
         createClickAnimation(position.x, position.y, radius);
-        
+
         // 点击以后清除当前图形
         app.stage.removeChild(container);
         circle.destroy();
@@ -177,13 +177,13 @@ const createClickAnimation = (x, y, radius) => {
     const particle = new Graphics();
     particle.circle(x, y, 4);
     particle.fill(0xffff00);
-    
+
     // 设置粒子的初始属性
     const angle = (Math.PI * 2 * i) / particleCount;
     particle.vx = Math.cos(angle) * 5;
     particle.vy = Math.sin(angle) * 5;
     particle.alpha = 1;
-    
+
     app.stage.addChild(particle);
     particles.push(particle);
   }
@@ -218,12 +218,12 @@ const createClickAnimation = (x, y, radius) => {
 const createFirework = (x, y, color) => {
   const particles = [];
   const particleCount = 30;
-  
+
   for (let i = 0; i < particleCount; i++) {
     const particle = new Graphics();
     particle.circle(x, y, 2);
     particle.fill(color);
-    
+
     // 随机角度和速度
     const angle = Math.random() * Math.PI * 2;
     const speed = 2 + Math.random() * 3;
@@ -232,7 +232,7 @@ const createFirework = (x, y, color) => {
     // 添加重力效果
     particle.gravity = 0.1;
     particle.alpha = 1;
-    
+
     app.stage.addChild(particle);
     particles.push(particle);
   }
@@ -311,7 +311,7 @@ try {
   console.log(app.screen.width, app.screen.height);
 
   initBg(40, true);
-  initTapCircle(15, 5)
+  initTapCircle(15, 50)
 } catch (error) {
   console.log(error);
 }
