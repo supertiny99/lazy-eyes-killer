@@ -147,10 +147,9 @@ const initTapCircle = (radius, count) => {
         // circleList 中找到当前点击的图形
         const index = circleList.indexOf(container);
         circleList.splice(index, 1);
-        // 如果所有的图形都隐藏了，则重新生成一批
-        console.log(app.stage.children.length);
+        // 如果所有的图形都隐藏了，则显示庆祝动画后重新生成一批
         if (circleCount === 0) {
-          initTapCircle(radius, count);
+          createCelebrationAnimation();
         } else {
           setRandomBlink(circleList);
         }
@@ -215,6 +214,94 @@ const createClickAnimation = (x, y, radius) => {
   app.ticker.add(animate);
 };
 
+// 创建烟花粒子
+const createFirework = (x, y, color) => {
+  const particles = [];
+  const particleCount = 30;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = new Graphics();
+    particle.circle(x, y, 2);
+    particle.fill(color);
+    
+    // 随机角度和速度
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 3;
+    particle.vx = Math.cos(angle) * speed;
+    particle.vy = Math.sin(angle) * speed;
+    // 添加重力效果
+    particle.gravity = 0.1;
+    particle.alpha = 1;
+    
+    app.stage.addChild(particle);
+    particles.push(particle);
+  }
+
+  return particles;
+};
+
+// 创建庆祝动画
+const createCelebrationAnimation = () => {
+  const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff];
+  let fireworks = [];
+  let animationTime = 0;
+  const animationDuration = 2000; // 动画持续2秒
+
+  // 创建多个烟花
+  const createNewFirework = () => {
+    const x = Math.random() * app.screen.width;
+    const y = Math.random() * (app.screen.height / 2);
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const particles = createFirework(x, y, color);
+    fireworks.push(...particles);
+  };
+
+  // 初始创建几个烟花
+  for (let i = 0; i < 3; i++) {
+    createNewFirework();
+  }
+
+  const animate = (delta) => {
+    animationTime += delta.elapsedMS;
+
+    // 每隔一段时间创建新的烟花
+    if (animationTime % 500 < 50) {
+      createNewFirework();
+    }
+
+    // 更新所有粒子
+    fireworks.forEach(particle => {
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+      particle.vy += particle.gravity;
+      particle.alpha -= 0.01;
+    });
+
+    // 移除消失的粒子
+    fireworks = fireworks.filter(particle => {
+      if (particle.alpha <= 0) {
+        app.stage.removeChild(particle);
+        particle.destroy();
+        return false;
+      }
+      return true;
+    });
+
+    // 动画结束
+    if (animationTime >= animationDuration) {
+      app.ticker.remove(animate);
+      fireworks.forEach(particle => {
+        app.stage.removeChild(particle);
+        particle.destroy();
+      });
+      // 动画结束后重新开始游戏
+      initTapCircle(15, 50);
+    }
+  };
+
+  app.ticker.add(animate);
+};
+
 try {
   // await app.init({ width: 640, height: 360 })
 
@@ -224,7 +311,7 @@ try {
   console.log(app.screen.width, app.screen.height);
 
   initBg(40, true);
-  initTapCircle(15, 50)
+  initTapCircle(15, 5)
 } catch (error) {
   console.log(error);
 }
