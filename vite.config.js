@@ -4,8 +4,5 @@ import vue from '@vitejs/plugin-vue'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/lazy-eyes-killer/',
-  build: {
-    outDir: 'docs'
-  },
   plugins: [vue()],
 })
