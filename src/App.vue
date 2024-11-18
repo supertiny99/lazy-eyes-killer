@@ -49,6 +49,43 @@ const initBg = (rectWidth, isMove = false) => {
   }
 }
 
+// 检查两个圆是否重叠
+const isCirclesOverlap = (x1, y1, x2, y2, radius) => {
+  const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+  // 如果两个圆心的距离小于两倍半径，说明重叠
+  return distance < (radius * 2);
+};
+
+// 获取一个不重叠的随机位置
+const getNoOverlapPosition = (existingPositions, radius, padding) => {
+  let attempts = 0;
+  const maxAttempts = 100; // 最大尝试次数，防止无限循环
+  
+  while (attempts < maxAttempts) {
+    const posX = Math.random() * (app.screen.width - 2 * radius - padding * 2) + (padding + radius);
+    const posY = Math.random() * (app.screen.height - 2 * radius - padding * 2) + (padding + radius);
+    
+    // 检查是否与现有的圆重叠
+    let hasOverlap = false;
+    for (const pos of existingPositions) {
+      if (isCirclesOverlap(posX, posY, pos.x, pos.y, radius)) {
+        hasOverlap = true;
+        break;
+      }
+    }
+    
+    if (!hasOverlap) {
+      return { x: posX, y: posY };
+    }
+    
+    attempts++;
+  }
+  
+  // 如果尝试多次都找不到合适的位置，可能需要调整参数
+  console.warn('Could not find non-overlapping position after', maxAttempts, 'attempts');
+  return null;
+};
+
 // 随机设置其中一个圆形，背景色闪烁
 const setRandomBlink = (circleList) => {
     const randomIndex = Math.floor(Math.random() * circleList.length);
@@ -71,30 +108,38 @@ const setRandomBlink = (circleList) => {
 const initTapCircle = (radius, count) => {
   let circleCount = count;
   const circleList = [];
+  const existingPositions = [];
+  const padding = 40;
+
   for (let i = 0; i < count; i++) {
     const circle = new Graphics();
-    // x, y 使用随机位置, 边缘留 padding 
-    // x 的范围 padding + radius ~ app.screen.width - radius - padding
-    // y 的范围 padding + radius ~ app.screen.height - radius - padding
-    // radius 是圆形的半径
-    const padding = 40;
-    let posX = Math.random() * (app.screen.width - 2 * radius - padding) + padding;
-    let posY = Math.random() * (app.screen.height - 2 * radius - padding) + padding;
-    // console.log(posX, posY);
-    circle.circle(posX, posY, radius);
+    
+    // 获取不重叠的位置
+    const position = getNoOverlapPosition(existingPositions, radius, padding);
+    
+    // 如果找不到合适的位置，跳过这个圆
+    if (!position) {
+      console.warn('Skipping circle due to no available space');
+      continue;
+    }
+    
+    existingPositions.push(position);
+    
+    circle.circle(position.x, position.y, radius);
     circle.fill(0xaaff00);
-    //希望给图形增加变换颜色的滤镜
-    // 创建 Container 来代理点击事件
+
     const container = new Container();
     container.addChild(circle);
     container.interactive = true;
-    // 可点击范围要比 circle 大一点
-    container.hitArea = new Circle(posX, posY, radius + 10);
+    container.hitArea = new Circle(position.x, position.y, radius + 10);
     circleList.push(container);
 
     container.on('tap', () => {
       // 判断当前点击的是否是闪烁的图形
       if (container.children[0].tint === 0xaaff00) {
+        // 创建点击动画效果
+        createClickAnimation(position.x, position.y, radius);
+        
         // 点击以后清除当前图形
         app.stage.removeChild(container);
         circle.destroy();
@@ -117,6 +162,59 @@ const initTapCircle = (radius, count) => {
   setRandomBlink(circleList);
 }
 
+// 创建点击特效动画
+const createClickAnimation = (x, y, radius) => {
+  // 创建爆炸效果圆圈
+  const burst = new Graphics();
+  burst.circle(x, y, radius);
+  burst.lineStyle(3, 0xffff00);
+  burst.fill(0xffff00, 0.5);
+  app.stage.addChild(burst);
+
+  // 创建粒子效果
+  const particles = [];
+  const particleCount = 8;
+  for (let i = 0; i < particleCount; i++) {
+    const particle = new Graphics();
+    particle.circle(x, y, 4);
+    particle.fill(0xffff00);
+    
+    // 设置粒子的初始属性
+    const angle = (Math.PI * 2 * i) / particleCount;
+    particle.vx = Math.cos(angle) * 5;
+    particle.vy = Math.sin(angle) * 5;
+    particle.alpha = 1;
+    
+    app.stage.addChild(particle);
+    particles.push(particle);
+  }
+
+  // 动画效果
+  let scale = 1;
+  const animate = () => {
+    scale += 0.2;
+    burst.scale.set(scale);
+    burst.alpha -= 0.1;
+
+    // 更新粒子位置
+    particles.forEach(particle => {
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+      particle.alpha -= 0.05;
+    });
+
+    if (burst.alpha <= 0) {
+      app.stage.removeChild(burst);
+      particles.forEach(p => app.stage.removeChild(p));
+      app.ticker.remove(animate);
+      burst.destroy();
+      particles.forEach(p => p.destroy());
+    }
+  };
+
+  app.ticker.add(animate);
+};
+
 try {
   // await app.init({ width: 640, height: 360 })
 
@@ -133,12 +231,12 @@ try {
 
 // 当页面大小变化时，重新初始化背景
 window.addEventListener('resize', () => {
-  initBg(40)
+  initBg(40, true)
   initTapCircle(15, 50)
 })
 // 页面翻转（平板浏览器上），重新初始化背景
 window.addEventListener('orientationchange', () => {
-  initBg(40)
+  initBg(40, true)
   initTapCircle(15, 50)
 })
 
