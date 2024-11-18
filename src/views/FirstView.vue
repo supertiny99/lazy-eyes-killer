@@ -321,7 +321,7 @@ onMounted(async () => {
     console.log(app.screen.width, app.screen.height);
 
     initBg(40, true);
-    initTapCircle(15, 50)
+    initTapCircle(15, 51)
   } catch (error) {
     console.log(error);
   }
