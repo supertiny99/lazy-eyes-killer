@@ -11,6 +11,9 @@ import { onMounted, ref } from 'vue';
 let app;
 globalThis.__PIXI_APP__ = app;
 
+// 添加计数器
+const eliminatedCount = ref(0);
+
 const initBg = (rectWidth, isMove = false) => {
 
   // 计算当前宽度需要多少个方块
@@ -61,10 +64,29 @@ const isCirclesOverlap = (x1, y1, x2, y2, radius) => {
 const getNoOverlapPosition = (existingPositions, radius, padding) => {
   let attempts = 0;
   const maxAttempts = 100; // 最大尝试次数，防止无限循环
+  
+  // 定义计数器区域（左上角）
+  const counterArea = {
+    x: 0,
+    y: 0,
+    width: 120, // 计数器区域宽度
+    height: 80  // 计数器区域高度
+  };
 
   while (attempts < maxAttempts) {
     const posX = Math.random() * (app.screen.width - 2 * radius - padding * 2) + (padding + radius);
     const posY = Math.random() * (app.screen.height - 2 * radius - padding * 2) + (padding + radius);
+
+    // 检查是否在计数器区域内
+    const inCounterArea = posX - radius < counterArea.x + counterArea.width && 
+                         posX + radius > counterArea.x && 
+                         posY - radius < counterArea.y + counterArea.height && 
+                         posY + radius > counterArea.y;
+
+    if (inCounterArea) {
+      attempts++;
+      continue;
+    }
 
     // 检查是否与现有的圆重叠
     let hasOverlap = false;
@@ -89,20 +111,31 @@ const getNoOverlapPosition = (existingPositions, radius, padding) => {
 
 // 随机设置其中一个圆形，背景色闪烁
 const setRandomBlink = (circleList) => {
+  if (circleList.length === 0) return;
+  
   const randomIndex = Math.floor(Math.random() * circleList.length);
-  const blinkCircle = circleList[randomIndex].children[0];
+  const container = circleList[randomIndex];
+  const blinkCircle = container.children[0];
   let blinkColor = 0xaaff00;
   let blinkTime = 0;
   const blinkFrequency = 500;
-  app.ticker.add((delta) => {
+  container.isBlinking = true; // 标记当前圆形为闪烁状态
+  blinkCircle.tint = blinkColor;
+  
+  const tickerHandler = (delta) => {
+    if (!container.isBlinking) {
+      app.ticker.remove(tickerHandler);
+      return;
+    }
     blinkTime += delta.elapsedMS;
-    // console.log(blinkTime, blinkFrequency);
     if (blinkTime >= blinkFrequency) {
       blinkTime = 0;
       blinkColor = (blinkColor === 0xaaff00) ? 0xff00ff : 0xaaff00;
       blinkCircle.tint = blinkColor;
     }
-  })
+  };
+  
+  app.ticker.add(tickerHandler);
 }
 
 // 在页面中生成可点击圆形图案
@@ -126,39 +159,48 @@ const initTapCircle = (radius, count) => {
 
     existingPositions.push(position);
 
-    circle.circle(position.x, position.y, radius);
+    circle.circle(0, 0, radius); // 使用相对坐标
     circle.fill(0xaaff00);
+    circle.tint = 0xaaff00; // 设置初始颜色
 
     const container = new Container();
     container.addChild(circle);
+    container.x = position.x;
+    container.y = position.y;
     container.interactive = true;
-    container.hitArea = new Circle(position.x, position.y, radius + 10);
+    container.cursor = 'pointer';
+    container.isBlinking = false;
     circleList.push(container);
 
-    container.on('tap', () => {
-      // 判断当前点击的是否是闪烁的图形
-      if (container.children[0].tint === 0xaaff00) {
-        // 创建点击动画效果
-        createClickAnimation(position.x, position.y, radius);
-
-        // 点击以后清除当前图形
+    const handleClick = () => {
+      if (container.isBlinking) {
+        eliminatedCount.value++; // 增加计数
+        createClickAnimation(container.x, container.y, radius);
         app.stage.removeChild(container);
-        circle.destroy();
+        container.isBlinking = false; // 确保在销毁前停止闪烁
+        container.destroy();
         circleCount--;
-        // circleList 中找到当前点击的图形
         const index = circleList.indexOf(container);
-        circleList.splice(index, 1);
-        // 如果所有的图形都隐藏了，则显示庆祝动画后重新生成一批
-        if (circleCount === 0) {
+        if (index > -1) {
+          circleList.splice(index, 1);
+        }
+        if (circleList.length === 0) {
           createCelebrationAnimation();
         } else {
+          // 点击成功后，立即让下一个圆开始闪烁
           setRandomBlink(circleList);
         }
       }
-    })
+    };
+
+    // 同时监听点击和触摸事件
+    container.on('click', handleClick);
+    container.on('tap', handleClick);
+
     app.stage.addChild(container);
   }
 
+  // 设置初始随机闪烁
   setRandomBlink(circleList);
 }
 
@@ -349,6 +391,7 @@ window.addEventListener('orientationchange', () => {
 <template>
   <div class="first-view" @touchend.prevent>
     <div ref="gameContainer"></div>
+    <div class="counter">已消除: {{ eliminatedCount }}</div>
   </div>
 </template>
 
@@ -357,6 +400,19 @@ window.addEventListener('orientationchange', () => {
   width: 100%;
   height: 100vh;
   position: relative;
+}
+
+.counter {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 1000;
 }
 </style>
 
