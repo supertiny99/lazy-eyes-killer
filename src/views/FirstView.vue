@@ -5,7 +5,7 @@ import {
   Container,
   Circle
 } from 'pixi.js';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 
 // Create the application helper and add its render target to the page
 let app;
@@ -303,19 +303,26 @@ const createCelebrationAnimation = () => {
   app.ticker.add(animate);
 };
 
+const gameContainer = ref(null);
+
 onMounted(async () => {
+  // Add meta tag to prevent zooming
+  const metaViewport = document.createElement('meta');
+  metaViewport.name = 'viewport';
+  metaViewport.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+  document.head.appendChild(metaViewport);
+
   try {
     app = new Application();
     globalThis.__PIXI_APP__ = app;
     await app.init({ antialias: true, resizeTo: window });
 
-    const firstView = document.getElementById('first-view');
-    if (!firstView) {
-      console.error('Could not find first-view element');
+    if (!gameContainer.value) {
+      console.error('Could not find game container element');
       return;
     }
 
-    firstView.appendChild(app.canvas);
+    gameContainer.value.appendChild(app.canvas);
 
     // 获取显示的宽度，高度
     console.log(app.screen.width, app.screen.height);
@@ -340,17 +347,19 @@ window.addEventListener('orientationchange', () => {
 </script>
 
 <template>
-  <div id="first-view">
+  <div class="first-view" @touchend.prevent>
+    <div ref="gameContainer"></div>
   </div>
 </template>
 
 <style scoped>
-#first-view {
+.first-view {
   width: 100%;
   height: 100vh;
   position: relative;
 }
 </style>
+
 <style>
 body {
   margin: 0;
