@@ -167,8 +167,10 @@ const initTapCircle = (radius, count) => {
     container.addChild(circle);
     container.x = position.x;
     container.y = position.y;
-    container.interactive = true;
-    container.cursor = 'pointer';
+    
+    // 设置交互属性
+    circle.eventMode = 'dynamic';
+    circle.cursor = 'pointer';
     container.isBlinking = false;
     circleList.push(container);
 
@@ -193,9 +195,8 @@ const initTapCircle = (radius, count) => {
       }
     };
 
-    // 同时监听点击和触摸事件
-    container.on('click', handleClick);
-    container.on('tap', handleClick);
+    // 在圆形上添加点击事件
+    circle.on('pointertap', handleClick);
 
     app.stage.addChild(container);
   }
